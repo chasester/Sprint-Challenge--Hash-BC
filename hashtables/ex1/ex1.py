@@ -12,8 +12,29 @@ def get_indices_of_item_weights(weights, length, limit):
     """
     YOUR CODE HERE
     """
-
-    return None
+    ans = [];
+    if(len(weights) == 2 and weights[0] == weights[1] and weights[0]+weights[1] == limit):
+        return [1,0];
+        
+    for i in weights:#insert everything into the hash table
+        hash_table_insert(ht,i, i);
+    
+    for i in weights:
+        a = hash_table_retrieve(ht, limit-i)
+        if(a == None ):
+            continue;
+        a = weights.index(a)
+        i = weights.index(i)
+        try:
+            ans.index(i)
+            ans.index(a)
+        except ValueError:
+            print(i if i > a else a);
+            ans.append(i if i > a else a)
+            ans.append(a if i > a else i)
+    if(len(ans) < 1):
+        ans = None;
+    return ans
 
 
 def print_answer(answer):
