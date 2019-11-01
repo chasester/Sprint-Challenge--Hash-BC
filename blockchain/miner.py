@@ -1,15 +1,15 @@
 import hashlib
 import requests
-
+import threading
 import sys
 
 from uuid import uuid4
 
 from timeit import default_timer as timer
-
+import json
 import random
-
-
+import time;
+next_proof = [-1]
 def proof_of_work(last_proof):
     """
     Multi-Ouroboros of Work Algorithm
@@ -20,16 +20,50 @@ def proof_of_work(last_proof):
     - Use the same method to generate SHA-256 hashes as the examples in class
     - Note:  We are adding the hash of the last proof to a number/nonce for the new proof
     """
+    
 
     start = timer()
-
     print("Searching for next proof")
     proof = 0
+    threadsize = 100000;
     #  TODO: Your code here
-
+    last_hash = json.dumps(last_proof, sort_keys=True).encode();
+    threads = []
+    ind = 0;
+    numofthreads = 60;
+    next_proof = [-1];
+    for i in range(numofthreads):
+        threads.append(threading.Thread(target=middle_man, args=(last_hash,i*threadsize, (i+1)*threadsize,next_proof)))
+    ind = numofthreads
+    for i in threads:
+        i.start();
+    time.sleep(2);
+    while True:
+        for i in threads:
+            if(i.is_alive() == False and next_proof[0] == -1):
+                i.join();
+                #print("Ran indexes",ind*threadsize,"-",(ind+1)*threadsize);
+                del i;
+                i = threading.Thread(target=middle_man, args=(last_hash,ind*threadsize, (ind+1)*threadsize,next_proof));
+                ind +=1;
+        if(next_proof[0] != -1):
+            break;
+        else:
+            time.sleep(1);
+    """ while valid_proof(last_hash, proof) == False:
+        proof+= 1; """
+    for i in threads:
+        i.join();#have to join here cuz of reasons
+    threads = [];
+    proof = next_proof;
     print("Proof found: " + str(proof) + " in " + str(timer() - start))
     return proof
 
+def middle_man(last_hash,start, end, next_proof):
+    for i in range(start, end):
+        if(valid_proof(last_hash, i) == True):
+            next_proof[0] = proof; #this reaches back to an atomic value that we set here;
+            break;
 
 def valid_proof(last_hash, proof):
     """
@@ -40,6 +74,10 @@ def valid_proof(last_hash, proof):
     """
 
     # TODO: Your code here!
+    guess = f'{last_hash}{proof}'.encode()
+    guess_hash = hashlib.sha256(guess).hexdigest()
+    # return True or False
+    return guess_hash[-6:] == last_hash[-6:]
     pass
 
 
@@ -53,10 +91,8 @@ if __name__ == '__main__':
     coins_mined = 0
 
     # Load or create ID
-    f = open("my_id.txt", "r")
-    id = f.read()
+    id = "ChaseWenner"
     print("ID is", id)
-    f.close()
 
     if id == 'NONAME\n':
         print("ERROR: You must change your name in `my_id.txt`!")
