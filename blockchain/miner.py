@@ -25,20 +25,20 @@ def proof_of_work(last_proof):
     start = timer()
     print("Searching for next proof")
     proof = 0
-    threadsize = 100000;
+    threadsize = 100;
     #  TODO: Your code here
-    last_hash = json.dumps(last_proof, sort_keys=True).encode();
+    last_hash = hashlib.sha256(str(last_proof).encode()).hexdigest();
     threads = []
     ind = 0;
-    numofthreads = 60;
+    numofthreads = 100;
     next_proof = [-1];
     for i in range(numofthreads):
         threads.append(threading.Thread(target=middle_man, args=(last_hash,i*threadsize, (i+1)*threadsize,next_proof)))
     ind = numofthreads
     for i in threads:
         i.start();
-    time.sleep(2);
-    while True:
+    time.sleep(2); #let everything catch up
+    while next_proof[0] == -1:
         for i in threads:
             if(i.is_alive() == False and next_proof[0] == -1):
                 i.join();
@@ -46,10 +46,12 @@ def proof_of_work(last_proof):
                 del i;
                 i = threading.Thread(target=middle_man, args=(last_hash,ind*threadsize, (ind+1)*threadsize,next_proof));
                 ind +=1;
+            elif(next_proof[0] != -1):
+                break;        
         if(next_proof[0] != -1):
             break;
         else:
-            time.sleep(1);
+            time.sleep(1); #we dont need to check every ms 
     """ while valid_proof(last_hash, proof) == False:
         proof+= 1; """
     for i in threads:
@@ -62,7 +64,8 @@ def proof_of_work(last_proof):
 def middle_man(last_hash,start, end, next_proof):
     for i in range(start, end):
         if(valid_proof(last_hash, i) == True):
-            next_proof[0] = proof; #this reaches back to an atomic value that we set here;
+            next_proof[0] = i; #this reaches back to an atomic value that we set here;
+            print("hash fond", i);
             break;
 
 def valid_proof(last_hash, proof):
@@ -74,11 +77,10 @@ def valid_proof(last_hash, proof):
     """
 
     # TODO: Your code here!
-    guess = f'{last_hash}{proof}'.encode()
+    guess = f'{proof}{last_hash}'.encode()
     guess_hash = hashlib.sha256(guess).hexdigest()
     # return True or False
-    return guess_hash[-6:] == last_hash[-6:]
-    pass
+    return guess_hash[:6] == last_hash[-6:]
 
 
 if __name__ == '__main__':
