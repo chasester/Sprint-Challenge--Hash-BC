@@ -21,41 +21,47 @@ def proof_of_work(last_proof):
     - Note:  We are adding the hash of the last proof to a number/nonce for the new proof
     """
     
-
+    #548399011 ,4580460
     start = timer()
-    print("Searching for next proof")
+    #last_proof = 548399011;
+    print("Searching for next proof", last_proof)
     proof = 0
-    threadsize = 100;
+    threadsize = 10000;
     #  TODO: Your code here
+    
     last_hash = hashlib.sha256(str(last_proof).encode()).hexdigest();
     threads = []
     ind = 0;
-    numofthreads = 100;
+    numofthreads = 20;
     next_proof = [-1];
     for i in range(numofthreads):
         threads.append(threading.Thread(target=middle_man, args=(last_hash,i*threadsize, (i+1)*threadsize,next_proof)))
     ind = numofthreads
     for i in threads:
         i.start();
-    time.sleep(2); #let everything catch up
+    #time.sleep(0.02); #let everything catch up
     while next_proof[0] == -1:
         for i in threads:
             if(i.is_alive() == False and next_proof[0] == -1):
-                i.join();
                 #print("Ran indexes",ind*threadsize,"-",(ind+1)*threadsize);
-                del i;
+                i.join();
+                i._delete();
                 i = threading.Thread(target=middle_man, args=(last_hash,ind*threadsize, (ind+1)*threadsize,next_proof));
+                i.start();
                 ind +=1;
             elif(next_proof[0] != -1):
+                print("Proof found: " + str(next_proof[0]) + " in " + str(timer() - start))
                 break;        
         if(next_proof[0] != -1):
             break;
         else:
-            time.sleep(1); #we dont need to check every ms 
+            pass;
+            #time.sleep(0.0001); #we dont need to check every ms 
     """ while valid_proof(last_hash, proof) == False:
         proof+= 1; """
     for i in threads:
         i.join();#have to join here cuz of reasons
+        i._delete();
     threads = [];
     proof = next_proof;
     print("Proof found: " + str(proof) + " in " + str(timer() - start))
@@ -64,8 +70,11 @@ def proof_of_work(last_proof):
 def middle_man(last_hash,start, end, next_proof):
     for i in range(start, end):
         if(valid_proof(last_hash, i) == True):
-            next_proof[0] = i; #this reaches back to an atomic value that we set here;
+            
             print("hash fond", i);
+            next_proof[0] = i; #this reaches back to an atomic value that we set here;
+            break;
+        elif(next_proof[0] != -1):
             break;
 
 def valid_proof(last_hash, proof):
@@ -77,7 +86,7 @@ def valid_proof(last_hash, proof):
     """
 
     # TODO: Your code here!
-    guess = f'{proof}{last_hash}'.encode()
+    guess = f'{proof}'.encode()
     guess_hash = hashlib.sha256(guess).hexdigest()
     # return True or False
     return guess_hash[:6] == last_hash[-6:]
